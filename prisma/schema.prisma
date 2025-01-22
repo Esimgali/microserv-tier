@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+enum Role {
+  USER
+  CREATOR
+  ADMIN
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  username   String   @unique
+  email      String   @unique
+  password   String
+  role       Role     @default(USER)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  avatar_url String?
+
+  creator       Creator? // Связь один-к-одному с Creator (опциональная)
+  subscriptions Subscription[] // Связь один-ко-многим с Subscription
+  transactions  Transaction[] // Связь один-ко-многим с Transaction
+}
+
+model Creator {
+  id           Int            @id @default(autoincrement())
+  user         User           @relation(fields: [userId], references: [id])
+  userId       Int            @unique
+  bio          String?
+  social_links String[]
+  posts        Post[]
+  tiers        Tier[]
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+  Subscription Subscription[]
+  files        File[]
+}
+
+model Post {
+  id         Int      @id @default(autoincrement())
+  title      String
+  content    String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  creatorId  Int
+  creator    Creator  @relation(fields: [creatorId], references: [id])
+  isPublic   Boolean  @default(false) // указывает, публичный ли пост
+  tierId     Int? // уровень доступа (для платных постов)
+  tier       Tier?    @relation(fields: [tierId], references: [id])
+  files      File[]
+}
+
+model Subscription {
+  id         Int       @id @default(autoincrement())
+  user       User      @relation(fields: [userId], references: [id])
+  userId     Int
+  creator    Creator   @relation(fields: [creatorId], references: [id])
+  creatorId  Int
+  tier       Tier      @relation(fields: [tierId], references: [id])
+  tierId     Int
+  start_date DateTime  @default(now())
+  end_date   DateTime?
+  is_active  Boolean   @default(true)
+}
+
+model Tier {
+  id            Int            @id @default(autoincrement())
+  creator       Creator        @relation(fields: [creatorId], references: [id])
+  creatorId     Int
+  name          String
+  description   String?
+  price         Float
+  benefits      String[]
+  subscriptions Subscription[]
+  posts         Post[]
+}
+
+model Transaction {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  amount     Float
+  currency   String
+  created_at DateTime @default(now())
+}
+
+model File {
+  id        Int      @id @default(autoincrement())
+  url       String // URL файла в хранилище (например, AWS S3)
+  name      String // Имя файла
+  type      String // Тип файла (например, image/png, video/mp4)
+  size      Int // Размер файла в байтах
+  creator   Creator? @relation(fields: [creatorId], references: [id]) // Создатель файла
+  creatorId Int?
+  post      Post?    @relation(fields: [postId], references: [id])
+  postId    Int?
+  createdAt DateTime @default(now())
+}
