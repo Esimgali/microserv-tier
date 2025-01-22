@@ -28,6 +28,8 @@ model User {
   creator       Creator? // Связь один-к-одному с Creator (опциональная)
   subscriptions Subscription[] // Связь один-ко-многим с Subscription
   transactions  Transaction[] // Связь один-ко-многим с Transaction
+  Like          Like[]
+  Comment       Comment[]
 }
 
 model Creator {
@@ -56,6 +58,29 @@ model Post {
   tierId     Int? // уровень доступа (для платных постов)
   tier       Tier?    @relation(fields: [tierId], references: [id])
   files      File[]
+  likes    Like[] // Связь с лайками
+  comments Comment[] // Связь с комментариями
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId]) // Один пользователь может лайкнуть пост только один раз
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Subscription {
